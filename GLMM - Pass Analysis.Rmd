@@ -1,0 +1,246 @@
+---
+title: "GLMM - Pass Analysis"
+output: html_notebook
+---
+
+```{r, message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+library(glmmTMB)
+library(lubridate)
+library(nadiv)
+```
+
+```{r}
+load = read.csv(paste0("C:/Users/Ong Jia Yi/Desktop/STUDY/Summer 2021/",
+                      "Rotman MMA Summer 2021 Datathon/",
+                      "NWHL_1.csv"),
+                stringsAsFactors = FALSE)
+```
+
+
+
+# PASS ANALYSIS
+
+## Helper Functions
+
+```{r}
+compute_distance = function(x0, y0, x1, y1){
+  
+  distance = sqrt((x1 - x0)^2 + (y1 - y0)^2)
+  
+  return(distance)
+}
+```
+
+```{r}
+compute_angle_pass = function(x0, y0, x1, y1, team){
+  # Returns angle between direction of pass and 
+  # direction of offense of the player's team.
+  # Outputs angle in degrees.
+  # Define passing on the spot to have zero angle.
+  
+  pass_dir = c(x1 - x0, y1 - y0)
+  pass_mag = sqrt(sum(pass_dir^2))
+  
+  if (team == "home"){
+    off_dir = c(1, 0)
+  }
+  if (team == "away"){
+    off_dir = c(-1, 0)
+  }
+  
+  angle = ifelse(pass_mag != 0, 
+                 acos(sum(off_dir * pass_dir) / pass_mag),
+                 0)
+  
+  return(angle/(2*pi)*360)
+}
+```
+
+
+## Data Preprocessing
+
+```{r}
+data_pass = load %>%
+  filter(Event %in% c("Incomplete Play", "Play")) %>% 
+  
+  # data formatting
+  mutate(Period = factor(Period, levels = c(1, 2, 3, 4)),
+         Clock = ms(Clock),
+         time_played = hms(substr(Cumulative_Time_Play, 8, 1000)),
+         direct_pass = ifelse(Detail.1 == "Direct", 1, 0)) %>%
+  
+  # create angle and distance variables
+  mutate(status = factor(ifelse(Team == Home.Team, "home", "away"))) %>%
+  rowwise() %>%
+  mutate(pass_angle = compute_angle_pass(X.Coordinate, Y.Coordinate,
+                                         X.Coordinate.2, Y.Coordinate.2,
+                                         status),
+         pass_dist = compute_distance(X.Coordinate, Y.Coordinate,
+                                      X.Coordinate.2, Y.Coordinate.2)) %>%
+  
+  # create pair variable
+  mutate(pairs = ifelse(Player < Player.2,
+                        paste0(Player, " - ", Player.2),
+                        paste0(Player.2, " - ", Player))) %>%
+  
+  # create own/opponent team score
+  mutate(own_score = ifelse(Team == Home.Team, Home.Team.Goals, Away.Team.Goals),
+         opponent_score = ifelse(Team == Home.Team, Away.Team.Goals, Home.Team.Goals)) %>%
+  
+  # create strength status
+  mutate(strength_status = case_when(
+    Home.Team.Skaters - Away.Team.Skaters == 0 ~ "Even_Strength",
+    Home.Team.Skaters - Away.Team.Skaters == 1 ~ ifelse(Team == Home.Team, "Power_Play_1", "Penalty_Kill_1"),
+    Home.Team.Skaters - Away.Team.Skaters == 2 ~ ifelse(Team == Home.Team, "Power_Play_2", "Penalty_Kill_2"),
+    Home.Team.Skaters - Away.Team.Skaters == -1 ~ ifelse(Team != Home.Team, "Power_Play_1", "Penalty_Kill_1"),
+    Home.Team.Skaters - Away.Team.Skaters == -2 ~ ifelse(Team != Home.Team, "Power_Play_2", "Penalty_Kill_2"))) %>%
+  
+  # create relative X,Y variables
+  mutate(X = ifelse(Team == Home.Team, X.Coordinate, abs(200 - X.Coordinate)),
+         X.2 = ifelse(Team == Home.Team, X.Coordinate.2, abs(200 - X.Coordinate.2))) %>%
+  rename(Y = Y.Coordinate, Y.2 = Y.Coordinate.2) %>%
+  
+  # create target variable
+  mutate(target = ifelse(Event == "Play", 1, 0)) %>%
+  
+  select(Team, pairs, Period, Clock, Y, Y.2, X, X.2,
+         time_played, direct_pass, status, pass_angle,
+         pass_dist, own_score, opponent_score, strength_status,
+         target)
+```
+
+```{r}
+data_pass
+```
+
+
+## Visualization
+
+Verifying angle and distance computation
+```{r}
+plot_data = data_pass %>%
+  filter(target == 1,
+         direct_pass == 1,
+         status == "away",
+         Team == unique(data_pass$Team)[1])
+
+ggplot(plot_data[1:20,]) +
+  geom_segment(aes(x = X, y = Y, xend = X.2, yend = Y.2),
+               arrow = arrow()) +
+  geom_text(aes(x = (X + X.2)/2, y = (Y + Y.2)/2,
+                label = paste(as.character(round(pass_angle, 2)),
+                              ", ",
+                              as.character(round(pass_dist, 2)))),
+            size = 3)
+```
+
+
+## Model Fitting
+
+```{r}
+t0 = Sys.time()
+model1_full = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
+                               + direct_pass + pass_angle + pass_dist 
+                               + own_score + opponent_score + strength_status
+                               + Y + Y.2 + X + X.2
+                               + (1 | Team/pairs), 
+                               family = binomial(link = "logit"), 
+                               data = data_pass)
+
+model1_noTeam = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
+                                 + direct_pass + pass_angle + pass_dist 
+                                 + own_score + opponent_score + strength_status
+                                 + Y + Y.2 + X + X.2
+                                 + (1 | pairs), 
+                                 family = binomial(link = "logit"), 
+                                 data = data_pass)
+
+model1_none = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
+                               + direct_pass + pass_angle + pass_dist 
+                               + own_score + opponent_score + strength_status
+                               + Y + Y.2 + X + X.2, 
+                               family = binomial(link = "logit"), 
+                               data = data_pass)
+t1 = Sys.time()
+t1 - t0
+```
+
+
+## Model Selection
+
+Likelihood Ratio Test:
+Null hypothesis that the smaller models provides as good a fit for the data as the larger model
+REJECTED.
+```{r}
+nadiv::LRTest(logLik(model1_full), logLik(model1_noTeam), 
+              df = 1, boundaryCorrection = TRUE)$Pval
+nadiv::LRTest(logLik(model1_full), logLik(model1_none), 
+              df = 2, boundaryCorrection = TRUE)$Pval
+```
+
+```{r}
+anova = anova(model1_full, model1_noTeam, model1_none)
+anova
+```
+
+
+## Final Model
+
+```{r}
+summary(model1_full)
+```
+
+
+## Model Evaluation
+
+```{r, message=F, warning=F}
+library(caret)
+library(pROC)
+library(plotROC)
+```
+
+```{r}
+pred = factor(ifelse(fitted(model1_full) >= 0.5, 1, 0), levels = c(1, 0))
+y = factor(data_pass$target, levels = c(1, 0))
+```
+
+```{r}
+confusionMatrix(pred, y)
+```
+
+```{r, message=F}
+invisible(plot(roc(y, fitted(model1_full)), print.thres = c(.1, .5),
+               col = "red", print.auc = T))
+```
+
+
+## Interpreting Model
+
+Displaying odds-ratios
+```{r}
+confint(model1_full) %>% exp()
+```
+
+```{r}
+ranef = glmmTMB::ranef(model1_full)
+ranef$cond$`pairs:Team` %>%
+  arrange(desc(`(Intercept)`))
+```
+
+Raw success rate for comparison
+```{r}
+data_pass %>%
+  group_by(pairs) %>%
+  summarise(counts = n(), rate = sum(target)/counts) %>%
+  filter(counts > 20) %>%
+  arrange(desc(counts), desc(rate))
+```
+
+```{r}
+ranef$cond$Team %>%
+  arrange(desc(`(Intercept)`))
+```
+
+
