@@ -1,0 +1,222 @@
+---
+title: "GLMM - Shot Analysis"
+output: html_notebook
+---
+
+```{r, message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+library(glmmTMB)
+library(lubridate)
+library(nadiv)
+```
+
+```{r}
+load = read.csv(paste0("C:/Users/Ong Jia Yi/Desktop/STUDY/Summer 2021/",
+                      "Rotman MMA Summer 2021 Datathon/",
+                      "NWHL_1.csv"),
+                stringsAsFactors = FALSE)
+```
+
+
+
+# SHOT ANALYSIS
+
+## Helper Functions
+
+```{r}
+compute_distance_shot = function(x, y){
+  
+  distance = sqrt((200 - x)^2 + (85/2 - y)^2)
+  
+  return(distance)
+}
+```
+
+```{r}
+compute_angle_shot = function(x, y){
+  # angle from direction facing the net
+  
+  shot_vector = c(x - 200, y - 85/2)
+  shot_mag = sqrt(sum(shot_vector^2))
+  
+  radian = ifelse(shot_mag != 0, 
+                  acos(sum(c(1, 0) * shot_vector) / shot_mag),
+                  0)
+  angle = radian/(2*pi)*360
+  
+  return(ifelse(angle > 90, 180-angle, angle))
+}
+```
+
+
+## Data Preprocessing
+
+```{r}
+data_shot = load %>%
+  filter(Event %in% c("Shot", "Goal")) %>% 
+  
+  # data formatting
+  mutate(Period = factor(Period, levels = c(1, 2, 3, 4)),
+         Clock = ms(Clock),
+         time_played = hms(substr(Cumulative_Time_Play, 8, 1000)),
+         Detail.1 = as.factor(Detail.1),
+         Detail.3 = factor(Detail.3, levels = c('f', 't')),
+         Detail.4 = factor(Detail.4, levels = c('f', 't'))) %>%
+  
+  # create angle and distance variables
+  mutate(status = factor(ifelse(Team == Home.Team, "home", "away"))) %>%
+  rowwise() %>%
+  mutate(shot_angle = compute_angle_shot(X.Coordinate, Y.Coordinate),
+         shot_dist = compute_distance_shot(X.Coordinate, Y.Coordinate)) %>%
+  
+  # create own/opponent team score
+  mutate(own_score = ifelse(Team == Home.Team, Home.Team.Goals, Away.Team.Goals),
+         opponent_score = ifelse(Team == Home.Team, Away.Team.Goals, Home.Team.Goals)) %>%
+  
+  # create strength status
+  mutate(strength_status = case_when(
+    Home.Team.Skaters - Away.Team.Skaters == 0 ~ "Even_Strength",
+    Home.Team.Skaters - Away.Team.Skaters == 1 ~ ifelse(Team == Home.Team, "Power_Play_1", "Penalty_Kill_1"),
+    Home.Team.Skaters - Away.Team.Skaters == 2 ~ ifelse(Team == Home.Team, "Power_Play_2", "Penalty_Kill_2"),
+    Home.Team.Skaters - Away.Team.Skaters == -1 ~ ifelse(Team != Home.Team, "Power_Play_1", "Penalty_Kill_1"),
+    Home.Team.Skaters - Away.Team.Skaters == -2 ~ ifelse(Team != Home.Team, "Power_Play_2", "Penalty_Kill_2"))) %>%
+  
+  rename(X = X.Coordinate, Y = Y.Coordinate) %>%
+  
+  # create target variable
+  mutate(target = ifelse(Event == "Goal", 1, 0)) %>%
+  
+  select(Team, Player, Period, Clock, Y, X,
+         time_played, status, shot_angle, shot_dist, own_score, 
+         Detail.1, Detail.3, Detail.4, opponent_score, strength_status,
+         target)
+```
+
+
+## Visualization
+
+Verifying angle and distance computation
+```{r}
+plot_data = data_shot %>%
+  filter(target == 1,
+         Team == unique(data_pass$Team)[1])
+
+ggplot(plot_data[1:10,]) +
+  geom_segment(aes(x = X, y = Y, xend = 200, yend = 85/2),
+               arrow = arrow()) +
+  geom_text(aes(x = X, y = Y,
+                label = paste(as.character(round(shot_angle, 2)),
+                              ", ",
+                              as.character(round(shot_dist, 2)))),
+            size = 3)
+```
+
+
+## Model Fitting
+
+```{r}
+t0 = Sys.time()
+model1_full = glmmTMB::glmmTMB(target ~ Clock + time_played + status
+                               + shot_angle + shot_dist 
+                               + own_score + opponent_score + strength_status
+                               + Detail.4
+                               + (1 | Team/Player), 
+                               family = binomial(link = "logit"), 
+                               data = data_shot)
+
+model1_noTeam = glmmTMB::glmmTMB(target ~ Clock + time_played + status
+                                 + shot_angle + shot_dist 
+                                 + own_score + opponent_score + strength_status
+                                 + Detail.4
+                                 + (1 | Player), 
+                                 family = binomial(link = "logit"), 
+                                 data = data_shot)
+
+model1_none= glmmTMB::glmmTMB(target ~ Clock + time_played + status
+                              + shot_angle + shot_dist 
+                              + own_score + opponent_score + strength_status
+                              + Detail.4, 
+                              family = binomial(link = "logit"), 
+                              data = data_shot)
+t1 = Sys.time()
+t1 - t0
+```
+
+
+## Model Selection
+
+Likelihood Ratio Test:
+Null hypothesis that the smaller models provides as good a fit for the data as the larger model
+REJECTED.
+```{r}
+nadiv::LRTest(logLik(model1_full), logLik(model1_noTeam), 
+              df = 1, boundaryCorrection = TRUE)$Pval
+nadiv::LRTest(logLik(model1_full), logLik(model1_none), 
+              df = 2, boundaryCorrection = TRUE)$Pval
+```
+
+```{r}
+anova = anova(model1_full, model1_noTeam, model1_none)
+anova
+```
+
+
+## Final Model
+
+```{r}
+summary(model1_full)
+```
+
+
+## Model Evaluation
+
+```{r, message=F, warning=F}
+library(caret)
+library(pROC)
+library(plotROC)
+```
+
+```{r}
+pred = factor(ifelse(fitted(model1_full) >= 0.5, 1, 0), levels = c(1, 0))
+y = factor(data_pass$target, levels = c(1, 0))
+```
+
+```{r}
+confusionMatrix(pred, y)
+```
+
+```{r, message=F}
+invisible(plot(roc(y, fitted(model1_full)), print.thres = c(.1, .5),
+               col = "red", print.auc = T))
+```
+
+
+## Interpreting Model
+
+Displaying odds-ratios
+```{r}
+confint(model1_full) %>% exp()
+```
+
+```{r}
+ranef = glmmTMB::ranef(model1_full)
+ranef$cond$`Player:Team` %>%
+  arrange(desc(`(Intercept)`))
+```
+
+Raw success rate for comparison
+```{r, message=F}
+data_shot %>%
+  group_by(Player) %>%
+  summarise(counts = n(), rate = sum(target)/counts) %>%
+  filter(counts > 20) %>%
+  arrange(desc(counts), desc(rate))
+```
+
+```{r}
+ranef$cond$Team %>%
+  arrange(desc(`(Intercept)`))
+```
+
+
