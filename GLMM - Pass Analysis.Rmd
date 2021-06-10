@@ -33,31 +33,6 @@ compute_distance = function(x0, y0, x1, y1){
 }
 ```
 
-```{r}
-compute_angle_pass = function(x0, y0, x1, y1, team){
-  # Returns angle between direction of pass and 
-  # direction of offense of the player's team.
-  # Outputs angle in degrees.
-  # Define passing on the spot to have zero angle.
-  
-  pass_dir = c(x1 - x0, y1 - y0)
-  pass_mag = sqrt(sum(pass_dir^2))
-  
-  if (team == "home"){
-    off_dir = c(1, 0)
-  }
-  if (team == "away"){
-    off_dir = c(-1, 0)
-  }
-  
-  angle = ifelse(pass_mag != 0, 
-                 acos(sum(off_dir * pass_dir) / pass_mag),
-                 0)
-  
-  return(angle/(2*pi)*360)
-}
-```
-
 
 ## Data Preprocessing
 
@@ -74,10 +49,7 @@ data_pass = load %>%
   # create angle and distance variables
   mutate(status = factor(ifelse(Team == Home.Team, "home", "away"))) %>%
   rowwise() %>%
-  mutate(pass_angle = compute_angle_pass(X.Coordinate, Y.Coordinate,
-                                         X.Coordinate.2, Y.Coordinate.2,
-                                         status),
-         pass_dist = compute_distance(X.Coordinate, Y.Coordinate,
+  mutate(pass_dist = compute_distance(X.Coordinate, Y.Coordinate,
                                       X.Coordinate.2, Y.Coordinate.2)) %>%
   
   # create pair variable
@@ -97,16 +69,14 @@ data_pass = load %>%
     Home.Team.Skaters - Away.Team.Skaters == -1 ~ ifelse(Team != Home.Team, "Power_Play_1", "Penalty_Kill_1"),
     Home.Team.Skaters - Away.Team.Skaters == -2 ~ ifelse(Team != Home.Team, "Power_Play_2", "Penalty_Kill_2"))) %>%
   
-  # create relative X,Y variables
-  mutate(X = ifelse(Team == Home.Team, X.Coordinate, abs(200 - X.Coordinate)),
-         X.2 = ifelse(Team == Home.Team, X.Coordinate.2, abs(200 - X.Coordinate.2))) %>%
-  rename(Y = Y.Coordinate, Y.2 = Y.Coordinate.2) %>%
+  rename(X = X.Coordinate, X.2 = X.Coordinate.2,
+         Y = Y.Coordinate, Y.2 = Y.Coordinate.2) %>%
   
   # create target variable
   mutate(target = ifelse(Event == "Play", 1, 0)) %>%
   
   select(Team, pairs, Period, Clock, Y, Y.2, X, X.2,
-         time_played, direct_pass, status, pass_angle,
+         time_played, direct_pass, status,
          pass_dist, own_score, opponent_score, strength_status,
          target)
 ```
@@ -130,9 +100,7 @@ ggplot(plot_data[1:20,]) +
   geom_segment(aes(x = X, y = Y, xend = X.2, yend = Y.2),
                arrow = arrow()) +
   geom_text(aes(x = (X + X.2)/2, y = (Y + Y.2)/2,
-                label = paste(as.character(round(pass_angle, 2)),
-                              ", ",
-                              as.character(round(pass_dist, 2)))),
+                label = as.character(round(pass_dist, 2))),
             size = 3)
 ```
 
@@ -142,7 +110,7 @@ ggplot(plot_data[1:20,]) +
 ```{r}
 t0 = Sys.time()
 model1_full = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
-                               + direct_pass + pass_angle + pass_dist 
+                               + direct_pass + pass_dist 
                                + own_score + opponent_score + strength_status
                                + Y + Y.2 + X + X.2
                                + (1 | Team/pairs), 
@@ -150,7 +118,7 @@ model1_full = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
                                data = data_pass)
 
 model1_noTeam = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
-                                 + direct_pass + pass_angle + pass_dist 
+                                 + direct_pass + pass_dist 
                                  + own_score + opponent_score + strength_status
                                  + Y + Y.2 + X + X.2
                                  + (1 | pairs), 
@@ -158,7 +126,7 @@ model1_noTeam = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
                                  data = data_pass)
 
 model1_none = glmmTMB::glmmTMB(target ~ Period + Clock + time_played + status
-                               + direct_pass + pass_angle + pass_dist 
+                               + direct_pass + pass_dist 
                                + own_score + opponent_score + strength_status
                                + Y + Y.2 + X + X.2, 
                                family = binomial(link = "logit"), 
