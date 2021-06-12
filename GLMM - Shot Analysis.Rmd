@@ -93,6 +93,11 @@ data_shot = load %>%
          target)
 ```
 
+```{r}
+write.csv(data_shot, "data_shot.csv", row.names=FALSE)
+```
+
+
 
 ## Visualization
 
@@ -100,7 +105,7 @@ Verifying angle and distance computation
 ```{r}
 plot_data = data_shot %>%
   filter(target == 1,
-         Team == unique(data_pass$Team)[1])
+         Team == unique(data_shot$Team)[1])
 
 ggplot(plot_data[1:10,]) +
   geom_segment(aes(x = X, y = Y, xend = 200, yend = 85/2),
@@ -179,7 +184,7 @@ library(plotROC)
 
 ```{r}
 pred = factor(ifelse(fitted(model1_full) >= 0.5, 1, 0), levels = c(1, 0))
-y = factor(data_pass$target, levels = c(1, 0))
+y = factor(data_shot$target, levels = c(1, 0))
 ```
 
 ```{r}
