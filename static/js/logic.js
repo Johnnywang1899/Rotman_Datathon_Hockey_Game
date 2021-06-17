@@ -79,6 +79,11 @@ function buttonClicked() {
           radialaxis: {
             visible: true,
             range: [0, 2]
+          },
+          angularaxis:{
+              tickfont:{
+                  size : 18
+              }
           }
         },
         showlegend: true,
