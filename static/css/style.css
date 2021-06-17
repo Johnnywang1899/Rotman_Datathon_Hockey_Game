@@ -2,10 +2,10 @@
 
 html, body {
     height: 100%;
-    margin-top: 100px;
+    margin-top: 10px;
     background-color: rgb(212, 231, 255);
-    margin-left:5%; 
-    margin-right:5%
+    margin-left:3%; 
+    margin-right:3%
   }
   
   #Data_Plot {

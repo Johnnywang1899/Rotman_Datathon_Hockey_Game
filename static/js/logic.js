@@ -37,6 +37,26 @@ function buttonClicked(){
                             name: window.player_info_3.name
                         }
                     ];
+                    trace_bar = [
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            name: window.player_info_1.name,
+                            type: 'bar'
+                        },
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_2.faceoff, window.player_info_2.control, window.player_info_2.takeaway, window.player_info_2.penalty],
+                            name: window.player_info_2.name,
+                            type: 'bar'
+                        },
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_3.faceoff, window.player_info_3.control, window.player_info_3.takeaway, window.player_info_3.penalty],
+                            name: window.player_info_3.name,
+                            type: 'bar'
+                        }
+                    ]
                 }
                 else {
                     trace = [
@@ -55,6 +75,20 @@ function buttonClicked(){
                             name: window.player_info_2.name
                         }
                     ];
+                    trace_bar = [
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            name: window.player_info_1.name,
+                            type: 'bar'
+                        },
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_2.faceoff, window.player_info_2.control, window.player_info_2.takeaway, window.player_info_2.penalty],
+                            name: window.player_info_2.name,
+                            type: 'bar'
+                        }
+                    ]
                 }
             }
             else if(player_info_3) {
@@ -74,6 +108,20 @@ function buttonClicked(){
                             name: window.player_info_3.name
                         }
                     ];
+                    trace_bar = [
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            name: window.player_info_1.name,
+                            type: 'bar'
+                        },
+                        {
+                            x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            y: [window.player_info_3.faceoff, window.player_info_3.control, window.player_info_3.takeaway, window.player_info_3.penalty],
+                            name: window.player_info_3.name,
+                            type: 'bar'
+                        }
+                    ]
                 }
             else {
                 trace = [
@@ -83,6 +131,14 @@ function buttonClicked(){
                         theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
                         fill: 'toself',
                         name: window.player_info_1.name
+                    }
+                ];
+                trace_bar = [
+                    {
+                        x: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                        y: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                        name: window.player_info_1.name,
+                        type: 'bar'
                     }
                 ];
             }
@@ -96,7 +152,11 @@ function buttonClicked(){
             },
             showlegend: true
         }
+        layout_bar = {
+            barmode: 'group'
+        }
         Plotly.newPlot("Data_Plot", trace, layout)
+        Plotly.newPlot("Bar_Plot", trace_bar, layout_bar)
     }
     else {
         alert("Please select players to generate diagram.");
