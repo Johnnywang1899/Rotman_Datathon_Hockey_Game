@@ -1,12 +1,14 @@
 /* Global Styles */
-
 html, body {
-    height: 100%;
-    margin-top: 30px;
-    background-color: rgb(212, 231, 255);
-    margin-left:3%; 
-    margin-right:3%
-  }
+  background-image: url(banner.jpeg);
+
+}
+
+.my-container {
+
+  margin-left:3%; 
+  margin-right:3%
+}
   
   #Data_Plot {
     position: relative;
@@ -19,6 +21,7 @@ html, body {
     font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
     font-weight: 600;
     font-size: 60px;
+    color: rgb(177, 206, 231);
     text-align: center;
   }
   
@@ -40,7 +43,7 @@ html, body {
     padding-bottom: 9px;
     margin: 40px 0 20px;
     border-bottom: 1px solid #8ca0cc;
-    color: #7485ad;
+    color: rgb(177, 206, 231);
   }
   
   .panel-primary > .panel-heading {
@@ -48,11 +51,35 @@ html, body {
     background-color: #7485ad;
     border-color: #7485ad;
   }
+  
+  .dropdown-label {
+    margin-top: 2%;
+    font-size: 15px;
+    color: #292f3d;
+  }
 
-  .panel-body {
-    height: 600px;
+
+  .dropdown-options{
+    font-size: 12px;
+  }
+
+
+  .panel-body1 {
+    height: 100px;
   }
   
+  .panel-body2 {
+    height: 600px;
+  }
+
+
+  #header {
+    background-image: url(banner.jpeg);
+    height: auto;
+    padding: 100px 100px
+}
+
+
   
   
   
