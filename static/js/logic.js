@@ -9,6 +9,10 @@ dropDownFill('#dropDownList_1');
 dropDownFill('#dropDownList_2');
 dropDownFill('#dropDownList_3');
 
+initFunction('Jillian Dempsey', 'Tereza Vanisova');
+d3.select('#dropDownList_1').property("value", 'Jillian Dempsey');
+d3.select('#dropDownList_2').property("value", 'Tereza Vanisova');
+
 function buttonClicked() {
     var trace = [];
     var barTrace = [];
@@ -78,6 +82,7 @@ function buttonClicked() {
           }
         },
         showlegend: true,
+        legend: {"orientation": "h"},
         height: 550
     }
     layout_bar = {
@@ -120,17 +125,20 @@ function searchInfo(searchName) {
 function typeOptionChange_1(playerName) {
     window.player_info_1 = searchInfo(playerName);
     buttonClicked()
-    console.log(player_info_1.name);
 }
 
 function typeOptionChange_2(playerName) {
     window.player_info_2 = searchInfo(playerName);
     buttonClicked()
-    console.log(player_info_2.name);
 }
 
 function typeOptionChange_3(playerName) {
     window.player_info_3 = searchInfo(playerName);
     buttonClicked()
-    console.log(player_info_3.name);
+}
+
+function initFunction(player_1_name, player_2_name){
+    window.player_info_1 = searchInfo(player_1_name);
+    window.player_info_2 = searchInfo(player_2_name);
+    buttonClicked()
 }

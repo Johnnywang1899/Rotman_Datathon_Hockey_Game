@@ -1,7 +1,6 @@
 /* Global Styles */
 html, body {
   background-image: url(banner.jpeg);
-
 }
 
 .my-container {
@@ -72,13 +71,11 @@ html, body {
     height: 600px;
   }
 
-
   #header {
     background-image: url(banner.jpeg);
     height: auto;
     padding: 100px 100px
 }
-
 
   
   
