@@ -74,15 +74,30 @@
                     <select class="form-control" id="dropDownList_3" onchange="typeOptionChange_3(this.value)">
                         <option value="" disabled selected hidden>Please Select Player 3</option>
                     </select><br><br>
-                    <button type="confirmButton" onclick="buttonClicked()">Confirm</button>
+                    <!-- <button type="confirmButton" onclick="buttonClicked()">Confirm</button> -->
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
-            <div id="Data_Plot"></div>
+            <div class="panel panel-primary diagram-panel">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Radar Graph</h3>
+                </div>
+                <div class="panel-body">
+                    <div id="Data_Plot"></div>
+
+                </div>
+            </div>
         </div>
         <div class="col-lg-5">
-            <div id="Bar_Plot"></div>
+            <div class="panel panel-primary diagram-panel">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Bar Graph</h3>
+                </div>
+                <div class="panel-body">
+                    <div id="Bar_Plot"></div>
+                </div>
+            </div>
         </div>
         </div>
     </div>
