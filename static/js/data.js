@@ -125,7 +125,8 @@ secondary_metric = [{"player":"Jillian Dempsey","score_faceoff":1.78988435,"scor
 {"player":"Lenka Curmova","score_faceoff":0,"score_control":-0.080972491,"score_takeaway":1.803824033,"score_penalty":0.699040007},
 {"player":"Laurel Hill","score_faceoff":0,"score_control":0,"score_takeaway":1.389401864,"score_penalty":0.75677798}];
 
-players = [{"name":"Jillian Dempsey"},
+players = [{"name":"Please select a player"},
+{"name":"Jillian Dempsey"},
 {"name":"Tereza Vanisova"},
 {"name":"Shiann Darkangelo"},
 {"name":"Taytum Clairmont"},

@@ -1,22 +1,121 @@
 // Add console.log to check to see if our code is working.
 console.log("working");
 
-var name_1;
-var name_2;
-var name_3;
+var player_info_1;
+var player_info_2;
+var player_info_3;
+
+dropDownFill('#dropDownList_1');
+dropDownFill('#dropDownList_2');
+dropDownFill('#dropDownList_3');
 
 function buttonClicked(){
+    if (player_info_1 || player_info_2 || player_info_3){
+        if (player_info_1){
+            if (player_info_2){
+                if (player_info_3){
+                    trace = [
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_1.name
+                        },
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_2.faceoff, window.player_info_2.control, window.player_info_2.takeaway, window.player_info_2.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_2.name
+                        },
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_3.faceoff, window.player_info_3.control, window.player_info_3.takeaway, window.player_info_3.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_3.name
+                        }
+                    ];
+                }
+                else {
+                    trace = [
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_1.name
+                        },
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_2.faceoff, window.player_info_2.control, window.player_info_2.takeaway, window.player_info_2.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_2.name
+                        }
+                    ];
+                }
+            }
+            else if(player_info_3) {
+                    trace = [
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_1.name
+                        },
+                        {
+                            type: 'scatterpolar',
+                            r: [window.player_info_3.faceoff, window.player_info_3.control, window.player_info_3.takeaway, window.player_info_3.penalty],
+                            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                            fill: 'toself',
+                            name: window.player_info_3.name
+                        }
+                    ];
+                }
+            else {
+                trace = [
+                    {
+                        type: 'scatterpolar',
+                        r: [window.player_info_1.faceoff, window.player_info_1.control, window.player_info_1.takeaway, window.player_info_1.penalty],
+                        theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
+                        fill: 'toself',
+                        name: window.player_info_1.name
+                    }
+                ];
+            }
+        }
+        layout = {
+            polar: {
+              radialaxis: {
+                visible: true,
+                range: [0, 2]
+              }
+            },
+            showlegend: true
+        }
+        Plotly.newPlot("Data_Plot", trace, layout)
+    }
+    else {
+        alert("Please select players to generate diagram.");
+    }
+    
+}
 
-    dropDownName = d3.select("#dropDownList");
+function dropDownFill(dropDown_id){
+    dropDownName = d3.select(dropDown_id);
     dropDownName.html("");
 
     players.forEach((player) => {
         dropDownName.append("option").text(player.name).property("value", player.name);
     })
+    console.log("fill complete");
 }
 
-function typeOptionChange(playerName){
-    var info = secondary_metric.find(item => item.player == playerName);
+function searchInfo(searchName){
+    var info = secondary_metric.find(item => item.player === searchName);
     if(info) {
         var retval = {
             name: info.player,
@@ -25,27 +124,24 @@ function typeOptionChange(playerName){
             takeaway: info.score_takeaway,
             penalty: info.score_penalty
         };
-        trace_1 = [{
-            type: 'scatterpolar',
-            r: [retval.faceoff, retval.control, retval.takeaway, retval.penalty],
-            theta: ['Face-off', 'Possession Control', 'Takeaway', 'Penalty Avoid'],
-            fill: 'toself'
-          }]
-          
-          layout = {
-            polar: {
-              radialaxis: {
-                visible: true,
-                range: [0, 2]
-              }
-            },
-            showlegend: false
-          }
-          
-          Plotly.newPlot("Data_Plot", trace_1, layout)
+        return retval;
     }
     else{
-        alert("No info available");
+        return null;
     }
+}
 
+function typeOptionChange_1(playerName){
+    window.player_info_1 = searchInfo(playerName);
+    console.log(player_info_1.name);
+}
+
+function typeOptionChange_2(playerName){
+    window.player_info_2 = searchInfo(playerName);
+    console.log(player_info_2.name);
+}
+
+function typeOptionChange_3(playerName){
+    window.player_info_3 = searchInfo(playerName);
+    console.log(player_info_3.name);
 }
