@@ -1,0 +1,121 @@
+---
+title: "PT"
+author: "Tong Wu"
+date: "14/06/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library("stringr") 
+library(readr)
+library(lubridate)
+```
+
+```{r}
+Duration <- list.files(path="Player_Time_Period_Duration_every_game/", pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  bind_rows 
+
+Duration$x2 <- sub(".* ", "", Duration$Total_duration)
+
+class(Duration$x2)
+
+Duration$Time <- strptime(Duration$x2, format =  "%H:%M:%S")
+Duration$hour <- hour(Duration$Time)
+Duration$min <- minute(Duration$Time)
+Duration$sec <- second(Duration$Time)
+du1<- Duration %>% 
+  mutate(Total_sec = hour*3600 + min*60 + sec) %>% 
+  select(Player_name, Total_sec)
+du2 <- du1 %>% 
+  group_by(Player_name) %>% 
+  summarise(Total_time = sum(Total_sec))
+
+```
+
+
+```{r}
+st = read.csv('Rotman MMA Summer Datathon NWHL.csv',stringsAsFactors = FALSE)
+```
+
+
+to check what kinda penalty there are
+```{r}
+st %>%
+  filter(Event == c("Penalty Taken")) %>%
+  select(Detail.1) %>%
+  table()
+
+Minor <- c("Cross-checking","Elobowing","Hooking","Slashing", "Tripping", "Roughing", "Holding","Interference","Unsportsmanlike conduct","High-sticking", "Face-off violation", "Holding the stick","Too many men on the ice","Illegal Check to the Head", "Charging", "Goalkeeper interference")
+
+
+Misconduct <- c("Game Misconduct")
+
+Major <- c("Cross-checking","Elobowing","Hooking","Slashing","Interference","Charging") 
+
+Match <- c("Cross-checking","Elobowing","Hooking","Slashing","Interference","Charging","Illegal Check to the Head", "High-sticking")
+```
+
+```{r}
+st_data = st %>% 
+    filter(Event == c("Penalty Taken")) %>% 
+  mutate(join_player = str_c(Player, "VS", Player.2, sep = " "),
+         player_team = str_c(Player, "--", Team, sep = " ")) %>% 
+select(Player, Event, Detail.1)
+```
+
+
+
+```{r}
+st_data$Duration <- 0
+
+for (i in 1:nrow(st_data)) {
+  if (is.element(st_data$Detail.1[i], unlist(Major))) {
+    st_data$Duration[i] = 210
+  }
+      else if  (is.element(st_data$Detail.1[i],unlist(Minor))) {
+    st_data$Duration[i] = 120
+      }
+    else if (is.element(st_data$Detail.1[i],unlist(Misconduct))) {
+     st_data$Duration[i] = 1200
+  }
+}
+```
+
+```{r}
+df1 <- st_data %>% 
+  group_by(Player) %>% 
+  mutate(Count = n(), Total = sum(Duration/60)) %>% 
+  select(Player,Count, Total) %>% 
+  arrange(desc(Total))
+  
+df1 <- distinct(df1)
+```
+
+```{r}
+df4 <- full_join(df1, du2, by = c("Player" = "Player_name"))
+df4[is.na(df4)] <- 0
+df4 <- df4 %>% 
+  mutate(Total_time =round(Total_time/60, digits = 1),
+    Rate = round(Total/Total_time, digits = 3)) %>% 
+  arrange(desc(Rate))
+df5 <- df4[-c(70:126),]
+```
+
+
+```{r}
+quantile(df5$Rate,probs = seq(0,1,by = 0.1))
+```
+
+```{r}
+df <- data.frame(df4)
+write.csv(df,"Penalty Taken.csv", row.names = FALSE)
+```
+
+

@@ -1,0 +1,77 @@
+---
+title: "Faceoff"
+author: "Tong Wu"
+date: "08/06/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library("stringr") 
+library(reshape2)
+```
+
+```{r}
+fo = read.csv('Rotman MMA Summer Datathon NWHL.csv',stringsAsFactors = FALSE)
+```
+
+```{r}
+names(fo)
+```
+
+```{r}
+fo %>%
+  filter(Event == c("Faceoff Win")) %>%
+  select(Detail.1) %>%
+  table()
+```
+
+```{r}
+fo_data = fo %>% 
+    filter(Event == c("Faceoff Win")) %>% 
+  mutate(join_player = str_c(Player, "VS", Player.2, sep = " "),
+         player_team = str_c(Player, "--", Team, sep = " ")) 
+```
+
+
+
+how to add detail to this?
+
+```{r}
+df1 <- fo_data %>% group_by(Player, Detail.1) %>% tally() %>% group_by(Detail.1)
+df1 <- dcast(df1, Player ~ Detail.1)
+df1[is.na(df1)] <- 0
+df1 <- df1 %>% mutate(Win = Backhand + Feet + Forehand) %>% arrange(desc(Win))
+```
+
+
+
+```{r}
+df2 <- fo_data %>% group_by(Player.2, Detail.1) %>% tally() %>% group_by(Detail.1)
+df2 <- dcast(df2, Player.2 ~ Detail.1)
+df2[is.na(df2)] <- 0
+df2<- df2 %>% mutate(Lose = Backhand + Feet + Forehand) %>% arrange(desc(Lose))
+```
+
+```{r}
+df3 = full_join(df1, df2, by = c("Player" = "Player.2"))
+df3[is.na(df3)] <- 0
+df3 <- df3 %>% mutate(Total = Win + Lose,
+               rate = round(Win/Total, digits = 3),
+               Backhand = Backhand.x+Backhand.y,
+               Feet = Feet.x + Feet.y,
+               Forehand = Forehand.x + Forehand.y) %>% 
+  select(everything(), -contains(".x"),-contains(".y")) %>% 
+  arrange((desc(Total)))
+```
+
+```{r}
+df <- data.frame(df3)
+write.csv(df,"Faceoff.csv", row.names = FALSE)
+```
+

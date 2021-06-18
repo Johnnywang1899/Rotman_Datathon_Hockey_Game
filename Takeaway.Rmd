@@ -1,0 +1,106 @@
+---
+title: "Takeaway"
+author: "Tong Wu"
+date: "09/06/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library("stringr") 
+library(reshape2)
+```
+
+```{r}
+ta = read.csv('Rotman MMA Summer Datathon NWHL.csv',stringsAsFactors = FALSE)
+```
+
+```{r}
+df2 <- ta %>%
+  group_by(Player) %>%
+  select(Event) %>%
+  summarise(Total_Event = n()) %>% 
+  arrange(desc(Total_Event))
+```
+
+```{r}
+ta$ID <- paste(ta$game_date, ta$Home.Team, ta$Away.Team, sep = "-")
+```
+
+
+```{r}
+ta %>% 
+  group_by(ID) %>% 
+  summarise(Total = n()) %>% 
+  arrange(Total)
+```
+
+
+```{r}
+ta_data = ta %>% 
+    filter(Event == "Takeaway")
+```
+
+Total number of takeaways 
+```{r}
+df1 <- ta_data %>% 
+  group_by(Player,Team) %>% 
+  summarise(Counts = n()) %>% 
+  arrange(desc(Counts))
+```
+
+```{r}
+df3 <- inner_join(df1, df2, by = c("Player" = "Player"))
+df3 <- df3 %>% 
+  mutate(Rate = round(Counts/Total_Event, digits = 3)) %>% 
+  arrange(desc(Rate))
+```
+
+```{r}
+Try <- ta %>% 
+  group_by(Player, ID) %>% 
+  summarise(Counts = n()) 
+#Try <- dcast(Try, Player ~ ID)
+#Try <- as.data.frame(Try)
+t <- as.data.frame(table(Try$Player))
+```
+
+```{r}
+df4 <- inner_join(df3, t, by = c("Player" = "Var1"))
+df4 <- rename(df4, Total_Games_Attended = Freq,
+              Takeaway_Rate = Rate)
+```
+
+```{r}
+ggplot(data = df4, aes(x = Takeaway_Rate))+
+  geom_histogram(stat = "count")
+```
+
+
+a function to calcualte counts within the team
+```{r}
+findplayer = function(team){
+  ta_data1 <- ta_data %>% 
+    filter(Team == team ) %>% 
+  group_by(Player) %>% 
+  summarise(Total = n()) %>% 
+  arrange(desc(Total))
+}
+```
+
+```{r}
+df2 <- findplayer("Toronto Six")
+df3 <- findplayer("Buffalo Beauts")
+df4 <- findplayer("Boston Pride")
+```
+
+```{r}
+df <- data.frame(df4)
+write.csv(df,"Takeaway.csv", row.names = FALSE)
+```
+
